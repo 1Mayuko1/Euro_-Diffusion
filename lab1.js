@@ -311,8 +311,14 @@ class MarkingType {
             day++;
         }
 
-        // Сортуємо країни за днем заповнення та повертаємо результат
-        this.countries.sort((a, b) => a.day_of_full - b.day_of_full);
+        // Сортуємо країни спочатку за днем заповнення, а потім за іменем
+        this.countries.sort((a, b) => {
+            if (a.day_of_full !== b.day_of_full) {
+                return a.day_of_full - b.day_of_full;
+            } else {
+                return a.name.localeCompare(b.name);
+            }
+        });
     }
 
     setGrid(countries_data) {
