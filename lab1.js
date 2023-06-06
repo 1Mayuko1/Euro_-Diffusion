@@ -11,6 +11,12 @@ Belgium 1 1 2 2
 0
 `
 
+// Встановлення констант
+grid = 10
+maxNumberOfCountries = 20
+templateOfPortion = 1000
+startCityBalance = 1000000
+
 function validateInput(input) {
     // Перевірка, чи є вхідні дані рядком
     if (typeof input !== "string") {
@@ -52,7 +58,7 @@ function validateInput(input) {
             if (name.length > 25) {
                 throw new Error(`Тест ${i + 1}, країна ${name}: Назва має бути не більше 25 символів!`);
             }
-            if (xl < 1 || xl > 10 || xh < 1 || xh > 10 || yl < 1 || yl > 10 || yh < 1 || yh > 10) {
+            if (xl < 1 || xl > grid || xh < 1 || xh > grid || yl < 1 || yl > grid || yh < 1 || yh > grid) {
                 throw new Error(`Тест ${i + 1}, країна ${name}: Координати мають бути від 1 до 10!`);
             }
             if (xl >= xh || yl >= yh) {
@@ -76,7 +82,7 @@ class Country {
     }
 
     // метод для перевірки заповненості країни
-    onFullness(day) {
+    isCountryFilled(day) {
         // якщо країна вже заповнена, то виходимо з методу
         if (this.full) {
             return;
@@ -96,7 +102,7 @@ class Country {
     }
 
     // метод для встановлення прапорця заповненості країни та занулення дня заповнення
-    onCountry() {
+    setFlagAndResetDate() {
         this.full = true;
         this.day_of_full = 0;
     }
@@ -111,7 +117,7 @@ class City {
         for (const city_data of countries_list) {
             this.balance[city_data.name] = 0;
         }
-        this.balance[country_name] = 1000000; // початковий баланс міста у відповідній країні
+        this.balance[country_name] = startCityBalance; // початковий баланс міста у відповідній країні
         this.balance_per_day = {}; // баланс міста по країнах на день
         for (const city_data of countries_list) {
             this.balance_per_day[city_data.name] = 0;
@@ -129,7 +135,7 @@ class City {
     neighboursPass() {
         for (const motif in this.balance) {
             const onBalanceValue = Number(this.balance[motif]);
-            const neighboursPassValue = Math.floor(onBalanceValue / 1000);
+            const neighboursPassValue = Math.floor(onBalanceValue / templateOfPortion);
             if (neighboursPassValue > 0) {
                 for (const neighbour of this.neighbours) {
                     this.balance[motif] -= neighboursPassValue;
@@ -180,7 +186,7 @@ function parseCountry(line) {
 
 // Перевіряємо, чи координати країни відповідають формату
     for (let i = 1; i < args.length; i++) {
-        if (parseInt(args[i]) <= 0 || parseInt(args[i]) >= 10 + 1) {
+        if (parseInt(args[i]) <= 0 || parseInt(args[i]) >= grid + 1) {
             throw new Error(`Помилка у рядку ${line}: неправильні координати країни`);
         }
     }
@@ -209,7 +215,7 @@ function getData() {
         if (countriesLen === 0) {
             return cases.slice();
         }
-        if (countriesLen > 20 || countriesLen < 1) {
+        if (countriesLen > maxNumberOfCountries || countriesLen < 1) {
             throw new Error(`Помилка у вводі для випадку ${caseNumber}: неправильна кількість країн`);
         }
         lineIndex++;
@@ -234,16 +240,16 @@ class MarkingType {
     constructor(countries_data) {
         // Створити порожній масив країн та двовимірний масив для зберігання міток
         this.countries = [];
-        this.grid = Array.from({ length: 10 + 2 }, () => new Array(10 + 2).fill(null));
+        this.grid = Array.from({ length: grid + 2 }, () => new Array(grid + 2).fill(null));
 
         // Встановити мітки для кожної клітинки відповідно до країни, яка її містить
         this.setGrid(countries_data);
 
         // Встановити список сусідів для кожного міста в кожній країні
-        this.onNeighbours();
+        this.checkCountryConnectivity();
     }
     // Перевірити, чи перетинаються будь-які дві країни в будь-якому місці
-    onIntersection() {
+    checkCountryIntersection() {
         for (let i = 0; i < this.countries.length - 1; i++) {
             const countryA = this.countries[i];
             for (let j = i + 1; j < this.countries.length; j++) {
@@ -263,7 +269,7 @@ class MarkingType {
     __diffusion() {
         // Якщо кількість країн 1, то виконуємо розрахунки лише для неї та повертаємо результат
         if (this.countries.length === 1) {
-            this.countries[0].onCountry();
+            this.countries[0].setFlagAndResetDate();
             return;
         }
 
@@ -295,7 +301,7 @@ class MarkingType {
             // Перевіряємо, чи заповнені всі країни
             full = true;
             for (const country of this.countries) {
-                country.onFullness(day);
+                country.isCountryFilled(day);
 
                 if (!country.full) {
                     full = false;
@@ -344,7 +350,7 @@ class MarkingType {
         }
 
         // Перевірка перетинів країн
-        this.onIntersection();
+        this.checkCountryIntersection();
     }
 
     // Функція повертає список сусідів міста за координатами x та y
@@ -371,7 +377,7 @@ class MarkingType {
     }
 
     // Функція перевіряє, щоб кожна країна мала з'єднання з іншими країнами за допомогою хоча б одного міста
-    onNeighbours() {
+    checkCountryConnectivity() {
         if (this.countries.length <= 1) {
             return;
         }
